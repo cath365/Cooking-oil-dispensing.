@@ -8,7 +8,7 @@ test('Zambian local and international numbers normalize to country code',()=>{
 });
 test('voucher text fits one basic SMS for ordinary vouchers',()=>{
  const m=voucherMessage({code:'123456',litres:2,expires:'2026-10-09T23:59:59Z'});
- assert.match(m,/123456/);assert.match(m,/2026-10-09/);assert.ok(m.length<=160);
+ assert.match(m,/123456/);assert.match(m,/9 Oct 2026/);assert.ok(m.length<=160);
 });
 test('request uses exact endpoint, provider, recipient and server authorization',async()=>{
  let requests=0;
@@ -24,4 +24,11 @@ test('HTTP rejection and provider rejection never report success',async()=>{
 });
 test('unknown network result never triggers an automatic retry',async()=>{
  let requests=0;await assert.rejects(sendVoucherSms({token:'mock',to:'260964597302',message:'test',fetcher:async()=>{requests++;throw new Error('timeout');}}));assert.equal(requests,1);
+});
+
+test('voucher message is readable and uses correct unit wording',()=>{
+ const m=voucherMessage({code:'922120',litres:5,expires:'2026-10-12T23:59:59.999Z'});
+ assert.equal(m, 'PIMISA COOKING OIL\nYour oil voucher is ready.\nCode: 922120\nQuantity: 5 litres\nValid until: 12 Oct 2026\nShow this SMS to collect your oil. Keep the code private.');
+ assert.match(voucherMessage({code:'123456',litres:1}), /Quantity: 1 litre\n/);
+ assert.match(voucherMessage({code:'123456',litres:0.5}), /Quantity: 0.5 litres/);
 });

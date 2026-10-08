@@ -15,6 +15,13 @@
       "when": 1791479434075,
       "tag": "0001_calm_masque",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1791479759395,
+      "tag": "0002_quiet_invaders",
+      "breakpoints": true
     }
   ]
 }

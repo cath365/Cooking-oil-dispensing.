@@ -6,10 +6,6 @@ test('Zambian local and international numbers normalize to country code',()=>{
  assert.equal(smsPhone('+260 964 597 302'),'260964597302');
  assert.throws(()=>smsPhone('abc'));assert.throws(()=>smsPhone('260'));
 });
-test('voucher text fits one basic SMS for ordinary vouchers',()=>{
- const m=voucherMessage({code:'123456',litres:2,expires:'2026-10-09T23:59:59Z'});
- assert.match(m,/123456/);assert.match(m,/9 Oct 2026/);assert.ok(m.length<=160);
-});
 test('request uses exact endpoint, provider, recipient and server authorization',async()=>{
  let requests=0;
  const result=await sendVoucherSms({token:'mock-test-token',to:'0964597302',message:'Voucher test',fetcher:async(url,opt)=>{
@@ -26,9 +22,18 @@ test('unknown network result never triggers an automatic retry',async()=>{
  let requests=0;await assert.rejects(sendVoucherSms({token:'mock',to:'260964597302',message:'test',fetcher:async()=>{requests++;throw new Error('timeout');}}));assert.equal(requests,1);
 });
 
-test('voucher message is readable and uses correct unit wording',()=>{
- const m=voucherMessage({code:'922120',litres:5,expires:'2026-10-12T23:59:59.999Z'});
- assert.equal(m, 'PIMISA COOKING OIL\nYour oil voucher is ready.\nCode: 922120\nQuantity: 5 litres\nValid until: 12 Oct 2026\nShow this SMS to collect your oil. Keep the code private.');
- assert.match(voucherMessage({code:'123456',litres:1}), /Quantity: 1 litre\n/);
- assert.match(voucherMessage({code:'123456',litres:0.5}), /Quantity: 0.5 litres/);
+test('requested personalized voucher format uses actual stored value and expiry',()=>{
+ const m=voucherMessage({customerName:'Andrew McNaught',code:'393501',litres:5,value:45,expires:'2026-10-15T23:59:59.999Z'},new Date('2026-10-08T12:00:00Z'));
+ assert.match(m,/Dear Andrew McNaught,/);
+ assert.match(m,/Voucher Code: 393501\nValue: K45\nExpires: 7 days from today/);
+ assert.match(m,/1\. Visit any PIMISA dispensing station/);
+ assert.ok(m.endsWith('www.pimisa.com'));
+ assert.ok(m.length>160);
+});
+test('expiry is computed from Zambia calendar day, including midnight and older vouchers',()=>{
+ const v={code:'123456',expires:'2026-10-09T23:59:59.999Z'};
+ assert.match(voucherMessage(v,new Date('2026-10-08T20:00:00Z')),/Expires: 1 day from today/);
+ assert.match(voucherMessage(v,new Date('2026-10-08T23:00:00Z')),/Expires: today/);
+ assert.match(voucherMessage(v,new Date('2026-10-10T12:00:00Z')),/Expires: Expired/);
+ assert.match(voucherMessage({code:'123456'}),/Value: Not specified/);
 });
